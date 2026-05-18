@@ -58,7 +58,6 @@ class AMISegmentationDataset(Dataset):
             rttm_path = self.rttm_dir / f"{file_id}.rttm"
 
             if not rttm_path.exists():
-                print(f"Warning: Не знайдено RTTM для {file_id}. Пропускаємо.")
                 continue
 
             # Отримуємо сегменти мовлення (тепер вони містять speaker_id)
@@ -154,7 +153,7 @@ class AMISegmentationDataset(Dataset):
         return waveform, labels
 
 
-class AMIDataModule(pl.LightningDataModule):
+class AMISegmentationDataModule(pl.LightningDataModule):
     def __init__(self, audio_dir, train_rttm_dir, val_rttm_dir,
                  window_size=2.0, window_hop=1.0, max_speakers=4,
                  batch_size=64, num_workers=4):
@@ -393,7 +392,7 @@ def main():
     TRAIN_RTTM_DIR = './only_words/rttms/train'
     VAL_RTTM_DIR = './only_words/rttms/dev'
 
-    data_module = AMIDataModule(audio_dir=AUDIO_DIR, train_rttm_dir=TRAIN_RTTM_DIR, val_rttm_dir=VAL_RTTM_DIR,
+    data_module = AMISegmentationDataModule(audio_dir=AUDIO_DIR, train_rttm_dir=TRAIN_RTTM_DIR, val_rttm_dir=VAL_RTTM_DIR,
                                 batch_size=32)
 
     # Ініціалізація моделі та Lightning модуля

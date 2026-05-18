@@ -79,7 +79,6 @@ class AMIVADDataset(Dataset):
             rttm_path = self.rttm_dir / f"{file_id}.rttm"
 
             if not rttm_path.exists():
-                print(f"Warning: Не знайдено RTTM для {file_id}. Пропускаємо.")
                 continue
 
             # Отримуємо інтервали мовлення
@@ -284,38 +283,39 @@ class VADLightningModule(pl.LightningModule):
             },
         }
 
-# Шляхи до розпакованого датасету
-AUDIO_DIR = './pyannote/amicorpus'
-TRAIN_RTTM_DIR = './only_words/rttms/train'
-VAL_RTTM_DIR = './only_words/rttms/dev'
+if __name__=='__main__':
+    # Шляхи до розпакованого датасету
+    AUDIO_DIR = './pyannote/amicorpus'
+    TRAIN_RTTM_DIR = './only_words/rttms/train'
+    VAL_RTTM_DIR = './only_words/rttms/dev'
 
-data_module = AMIDataModule(audio_dir=AUDIO_DIR, train_rttm_dir=TRAIN_RTTM_DIR, val_rttm_dir=VAL_RTTM_DIR, batch_size=32)
+    data_module = AMIDataModule(audio_dir=AUDIO_DIR, train_rttm_dir=TRAIN_RTTM_DIR, val_rttm_dir=VAL_RTTM_DIR,
+                                batch_size=32)
 
+    model = VADLightningModule(learning_rate=1e-3)
 
+    # Колбеки для збереження найкращої моделі та ранньої зупинки
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        monitor='val_f1',
+        dirpath='checkpoints/',
+        filename='vad-ami-{epoch:02d}-{val_f1:.2f}',
+        save_top_k=3,
+        mode='max',
+    )
+    early_stop_callback = pl.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=7,
+        mode='min'
+    )
 
-model = VADLightningModule(learning_rate=1e-3)
+    trainer = pl.Trainer(
+        max_epochs=20,
+        accelerator='cuda',  # Автоматично використовує GPU (MPS для Mac, CUDA для Nvidia)
+        devices=1,
+        callbacks=[checkpoint_callback, early_stop_callback],
+        # callbacks=[checkpoint_callback,],
+        precision='16-mixed',  # Mixed precision для швидкості
+    )
 
-# Колбеки для збереження найкращої моделі та ранньої зупинки
-checkpoint_callback = pl.callbacks.ModelCheckpoint(
-    monitor='val_f1',
-    dirpath='checkpoints/',
-    filename='vad-ami-{epoch:02d}-{val_f1:.2f}',
-    save_top_k=3,
-    mode='max',
-)
-early_stop_callback = pl.callbacks.EarlyStopping(
-    monitor='val_loss',
-    patience=7,
-    mode='min'
-)
+    trainer.fit(model, datamodule=data_module)
 
-trainer = pl.Trainer(
-    max_epochs=20,
-    accelerator='cuda', # Автоматично використовує GPU (MPS для Mac, CUDA для Nvidia)
-    devices=1,
-    callbacks=[checkpoint_callback, early_stop_callback],
-    # callbacks=[checkpoint_callback,],
-    precision='16-mixed', # Mixed precision для швидкості
-)
-
-trainer.fit(model, datamodule=data_module)

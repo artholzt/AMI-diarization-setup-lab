@@ -70,7 +70,6 @@ class AMISpeakerDataset(Dataset):
             rttm_path = self.rttm_dir / f"{file_id}.rttm"
 
             if not rttm_path.exists():
-                print(f"Warning: Не знайдено RTTM для {file_id}. Пропускаємо.")
                 continue
 
             speaker_segments = self._parse_rttm(rttm_path)
@@ -151,7 +150,7 @@ class AMISpeakerDataModule(pl.LightningDataModule):
         # Створюємо єдиний мапінг мовців для Train та Val сетів
         self.speaker_to_id = self._build_speaker_vocab()
         self.num_classes = len(self.speaker_to_id)
-        print(f"Усього унікальних мовців знайдено: {self.num_classes}")
+        # print(f"Усього унікальних мовців знайдено: {self.num_classes}")
 
     def _build_speaker_vocab(self):
         """Сканує всі RTTM файли для створення стабільного словника унікальних мовців."""
